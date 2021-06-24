@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Annuity Calc</string>
+    <string name="CreditSumm">Сумма кредита:</string>
+    <string name="TimeMonth">Срок (месяцев):</string>
+    <string name="Rate">Ставка % (годовых):</string>
+    <string name="MonthPayment">Месячный платеж:</string>
+    <string name="Btn1">Расчитать сумму ежемесячного платежа...</string>
+    <string name="Btn2">Расчитать фактическую ставку по кредиту</string>
+</resources>

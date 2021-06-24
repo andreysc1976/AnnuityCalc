@@ -1,0 +1,2 @@
+rootProject.name = "Annuity Calc"
+include ':app'
