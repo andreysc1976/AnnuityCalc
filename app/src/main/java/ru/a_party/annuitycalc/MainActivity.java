@@ -1,12 +1,25 @@
 package ru.a_party.annuitycalc;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
+import android.annotation.SuppressLint;
+import android.content.pm.ActivityInfo;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -15,10 +28,15 @@ public class MainActivity extends AppCompatActivity {
     private double rate;
     private double monthPay;
 
-    private EditText editTextCreditSumm;
-    private EditText editTextTimeMonth;
-    private EditText editTextRate;
-    private EditText editTextMonthPay;
+    private AdView mAdView;
+
+    private TextInputEditText editTextCreditSumm;
+    private TextInputEditText editTextTimeMonth;
+    private TextInputEditText editTextRate;
+    private TextInputEditText editTextMonthPay;
+
+    private TextView hintTextView;
+    private CardView cardViewHint;
 
 
     private double annuityK(double internalRate,int internalTimeMonth){
@@ -68,30 +86,57 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_new);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
+
+        mAdView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+        hintTextView = findViewById(R.id.hintTextView);
+
 
         editTextCreditSumm=findViewById(R.id.editTextCreditSumm);
         editTextTimeMonth = findViewById(R.id.editTextTimeMonth);
         editTextRate = findViewById(R.id.editTextRate);
         editTextMonthPay = findViewById(R.id.editTextMonthPay);
 
-        findViewById(R.id.buttonCalcMonthPay).setOnClickListener(new View.OnClickListener() {
+        cardViewHint = findViewById(R.id.cardViewHint);
+
+        TextInputLayout inputLayoutSM = findViewById(R.id.textInputLayoutMonthPay);
+        inputLayoutSM.setEndIconOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 readValue();
                 double annuityK = annuityK(rate,timeMonth);
                 monthPay = creditSumm*annuityK;
-                editTextMonthPay.setText(String.format("%.2f",monthPay));
+                if (Double.isNaN(monthPay)){
+                    Toast.makeText(getApplicationContext(),"Не все данные для расчета платежа заполнены",Toast.LENGTH_LONG).show();
+                    editTextMonthPay.setText(String.format("%.2f", 0f));
+                } else {
+                    editTextMonthPay.setText(String.format("%.2f", monthPay));
+                }
             }
         });
 
-        findViewById(R.id.buttonCalcRate).setOnClickListener(new View.OnClickListener() {
+        TextInputLayout inputLayoutRate = findViewById(R.id.textInputLayoutRate);
+        inputLayoutRate.setEndIconOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 readValue();
+                if (creditSumm/timeMonth>monthPay){
+                    hintTextView.setText("Не корректная сумма месячного платежа, меньше чем необходимо для погашения в заданный период даже без процентов, возможно опечатка");
+                    return;
+                }
                 double pay = 0;
                 boolean found = false;
-                for (double i = 0; i <10000 ; i++) {
+                double i;
+                for (i = 0; i <100000 ; i++) {
                     double annuityK = annuityK((i/100)/100/12,timeMonth);
                     pay = creditSumm*annuityK;
                     if (pay>=monthPay){
@@ -100,12 +145,47 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
                 }
-                if (!found){
-                    editTextRate.setText(String.format("%.2f",99.99f));
-                    Toast toast = Toast.makeText(getApplicationContext(),"Процентная ставка более 100% годовых",Toast.LENGTH_LONG);
-                    toast.show();
+                if (!found || i/100>100){
+                    if (found) {
+                        editTextRate.setText(String.format("%.2f", i/100));
+                    } else {
+                        editTextRate.setText(String.format("%.2f", 99.99f));
+                    }
+                    hintTextView.setText("Процентная ставка более 100% годовых");
+                    new Thread()
+                    {
+                        @Override
+                        public void run() {
+                            Float old = cardViewHint.getCardElevation();
+                            ColorStateList oldColor = cardViewHint.getCardBackgroundColor();
+                            cardViewHint.setCardBackgroundColor(Color.parseColor("#FFEEEE"));
+                            for (int i = 0; i <100 ; i++) {
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                cardViewHint.setCardElevation(i);
+                            }
+
+                            for (int i = 100; i >0 ; i--) {
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                cardViewHint.setCardElevation(i);
+                            }
+                            cardViewHint.setCardElevation(old);
+                            cardViewHint.setCardBackgroundColor(oldColor);
+                        }
+                    }.start();
+                    return;
                 }
+
+                hintTextView.setText("Почему полная ставка по кредиту может отличатся от заявленной банком:  В тело кредита может быть включена страховка на весь период кредитования");
             }
         });
+
     }
 }
