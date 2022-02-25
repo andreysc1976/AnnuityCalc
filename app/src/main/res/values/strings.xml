@@ -6,4 +6,6 @@
     <string name="MonthPayment">Месячный платеж:</string>
     <string name="Btn1">Расчитать сумму ежемесячного платежа...</string>
     <string name="Btn2">Расчитать фактическую ставку по кредиту</string>
+    <string name="captionHint">Для расчета поля нажмите иконку калькулятора в нем</string>
+    <string name="oversizeCaption">Переплата</string>
 </resources>

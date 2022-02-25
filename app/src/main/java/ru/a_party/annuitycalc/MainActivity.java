@@ -1,5 +1,6 @@
 package ru.a_party.annuitycalc;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
@@ -13,8 +14,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
@@ -34,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private TextInputEditText editTextTimeMonth;
     private TextInputEditText editTextRate;
     private TextInputEditText editTextMonthPay;
+    private TextInputEditText editTextOversize;
 
     private TextView hintTextView;
     private CardView cardViewHint;
@@ -44,6 +48,14 @@ public class MainActivity extends AppCompatActivity {
             return 0;
         }
         return (internalRate*Math.pow(1f+internalRate,internalTimeMonth))/(Math.pow(1f+internalRate,internalTimeMonth)-1f);
+    }
+
+    private void setOversizeValue()
+    {
+        double oversizeValue = monthPay*timeMonth - creditSumm;
+        if (Double.isNaN(oversizeValue)){oversizeValue=0.00;}
+        if (oversizeValue<0){oversizeValue=0.00;}
+        editTextOversize.setText(String.format("%.2f", oversizeValue));
     }
 
     private void readValue(){
@@ -91,20 +103,57 @@ public class MainActivity extends AppCompatActivity {
 
         MobileAds.initialize(this, new OnInitializationCompleteListener() {
             @Override
-            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
             }
         });
 
         mAdView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
-        hintTextView = findViewById(R.id.hintTextView);
+        mAdView.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                super.onAdClosed();
+            }
 
+            @Override
+            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                super.onAdFailedToLoad(loadAdError);
+            }
+
+            @Override
+            public void onAdOpened() {
+                super.onAdOpened();
+            }
+
+            @Override
+            public void onAdLoaded() {
+                super.onAdLoaded();
+            }
+
+            @Override
+            public void onAdClicked() {
+                super.onAdClicked();
+            }
+
+            @Override
+            public void onAdImpression() {
+                super.onAdImpression();
+            }
+        });
+
+
+        hintTextView = findViewById(R.id.hintTextView);
 
         editTextCreditSumm=findViewById(R.id.editTextCreditSumm);
         editTextTimeMonth = findViewById(R.id.editTextTimeMonth);
         editTextRate = findViewById(R.id.editTextRate);
         editTextMonthPay = findViewById(R.id.editTextMonthPay);
+
+        editTextOversize = findViewById(R.id.editTextOversize);
+        editTextOversize.setFocusable(false);
+        editTextOversize.setLongClickable(false);
+
 
         cardViewHint = findViewById(R.id.cardViewHint);
 
@@ -121,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     editTextMonthPay.setText(String.format("%.2f", monthPay));
                 }
+                setOversizeValue();
             }
         });
 
@@ -182,8 +232,8 @@ public class MainActivity extends AppCompatActivity {
                     }.start();
                     return;
                 }
-
-                hintTextView.setText("Почему полная ставка по кредиту может отличатся от заявленной банком:  В тело кредита может быть включена страховка на весь период кредитования");
+                setOversizeValue();
+                hintTextView.setText("Почему полная ставка по кредиту может отличатся от заявленной банком:  Например а тело кредита может быть включена страховка на весь период кредитования");
             }
         });
 
