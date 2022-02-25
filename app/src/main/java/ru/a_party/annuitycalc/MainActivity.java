@@ -4,13 +4,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
-import android.annotation.SuppressLint;
+
 import android.content.pm.ActivityInfo;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,8 +30,6 @@ public class MainActivity extends AppCompatActivity {
     private double rate;
     private double monthPay;
 
-    private AdView mAdView;
-
     private TextInputEditText editTextCreditSumm;
     private TextInputEditText editTextTimeMonth;
     private TextInputEditText editTextRate;
@@ -50,9 +47,9 @@ public class MainActivity extends AppCompatActivity {
         return (internalRate*Math.pow(1f+internalRate,internalTimeMonth))/(Math.pow(1f+internalRate,internalTimeMonth)-1f);
     }
 
-    private void setOversizeValue()
+    private void setOversizeValue(Double oversizeValue)
     {
-        double oversizeValue = monthPay*timeMonth - creditSumm;
+
         if (Double.isNaN(oversizeValue)){oversizeValue=0.00;}
         if (oversizeValue<0){oversizeValue=0.00;}
         editTextOversize.setText(String.format("%.2f", oversizeValue));
@@ -107,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mAdView = findViewById(R.id.adView);
+        AdView mAdView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
         mAdView.setAdListener(new AdListener() {
@@ -162,15 +159,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 readValue();
-                double annuityK = annuityK(rate,timeMonth);
-                monthPay = creditSumm*annuityK;
+                monthPay = AnnuityCalc.Companion.monthPay(rate,timeMonth,creditSumm);
                 if (Double.isNaN(monthPay)){
                     Toast.makeText(getApplicationContext(),"Не все данные для расчета платежа заполнены",Toast.LENGTH_LONG).show();
                     editTextMonthPay.setText(String.format("%.2f", 0f));
                 } else {
                     editTextMonthPay.setText(String.format("%.2f", monthPay));
                 }
-                setOversizeValue();
+                setOversizeValue(AnnuityCalc.Companion.getOversizePaid(timeMonth,monthPay,creditSumm));
             }
         });
 
@@ -183,21 +179,18 @@ public class MainActivity extends AppCompatActivity {
                     hintTextView.setText("Не корректная сумма месячного платежа, меньше чем необходимо для погашения в заданный период даже без процентов, возможно опечатка");
                     return;
                 }
-                double pay = 0;
-                boolean found = false;
-                double i;
-                for (i = 0; i <100000 ; i++) {
-                    double annuityK = annuityK((i/100)/100/12,timeMonth);
-                    pay = creditSumm*annuityK;
-                    if (pay>=monthPay){
-                        editTextRate.setText(String.format("%.2f",i/100));
-                        found = true;
-                        break;
-                    }
+
+                Double findRate = AnnuityCalc.Companion.calcRateBySummAndPaySumm(creditSumm,timeMonth,monthPay);
+                Boolean found = false;
+                if (findRate == null){
+                    found = true;
+                } else {
+                    findRate=0.00;
                 }
-                if (!found || i/100>100){
+
+                if (!found || findRate>100){
                     if (found) {
-                        editTextRate.setText(String.format("%.2f", i/100));
+                        editTextRate.setText(String.format("%.2f", findRate));
                     } else {
                         editTextRate.setText(String.format("%.2f", 99.99f));
                     }
@@ -232,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
                     }.start();
                     return;
                 }
-                setOversizeValue();
+                setOversizeValue(AnnuityCalc.Companion.getOversizePaid(timeMonth,monthPay,creditSumm));
                 hintTextView.setText("Почему полная ставка по кредиту может отличатся от заявленной банком:  Например а тело кредита может быть включена страховка на весь период кредитования");
             }
         });
